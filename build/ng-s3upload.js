@@ -156,7 +156,7 @@ angular.module('ngS3upload.directives', []).
 
         $scope.barClass = function () {
           return {
-            "bar-success": $scope.attempt && !$scope.uploading && $scope.success
+            "progress-bar-success": $scope.attempt && !$scope.uploading && $scope.success
           };
         };
       }],
