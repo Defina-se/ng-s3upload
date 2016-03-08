@@ -195,47 +195,56 @@ angular.module('ngS3upload.directives', []).
               scope.filename = ngModel.$viewValue;
             };
 
+            var matchFileExtensionWithAcceptParam = function(selectedFileType){
+              selectedFileType = selectedFileType.type.split("/")[0];
+              optsFileType = opts.accept.split("/")[0];
+              return selectedFileType == optsFileType;
+            };
+
             var uploadFile = function () {
               var selectedFile = file[0].files[0];
               var filename = selectedFile.name;
               var ext = filename.split('.').pop();
+              if(matchFileExtensionWithAcceptParam(selectedFile)){
+                S3Uploader.getUploadOptions(opts.getOptionsUri).then(function (s3Options) {
+                  if (opts.enableValidation) {
+                    ngModel.$setValidity('uploading', false);
+                  }
 
-              S3Uploader.getUploadOptions(opts.getOptionsUri).then(function (s3Options) {
-                if (opts.enableValidation) {
-                  ngModel.$setValidity('uploading', false);
-                }
+                  var s3Uri = 'https://' + bucket + '.s3.amazonaws.com/';
+                  var key = opts.targetFilename ? scope.$eval(opts.targetFilename) : opts.folder + (new Date()).getTime() + '-' + S3Uploader.randomString(16) + "." + ext;
+                  S3Uploader.upload(scope,
+                      s3Uri,
+                      key,
+                      opts.acl,
+                      selectedFile.type,
+                      s3Options.key,
+                      s3Options.policy,
+                      s3Options.signature,
+                      selectedFile
+                    ).then(function () {
+                      ngModel.$setViewValue(s3Uri + key);
+                      scope.filename = ngModel.$viewValue;
 
-                var s3Uri = 'https://' + bucket + '.s3.amazonaws.com/';
-                var key = opts.targetFilename ? scope.$eval(opts.targetFilename) : opts.folder + (new Date()).getTime() + '-' + S3Uploader.randomString(16) + "." + ext;
-                S3Uploader.upload(scope,
-                    s3Uri,
-                    key,
-                    opts.acl,
-                    selectedFile.type,
-                    s3Options.key,
-                    s3Options.policy,
-                    s3Options.signature,
-                    selectedFile
-                  ).then(function () {
-                    ngModel.$setViewValue(s3Uri + key);
-                    scope.filename = ngModel.$viewValue;
+                      if (opts.enableValidation) {
+                        ngModel.$setValidity('uploading', true);
+                        ngModel.$setValidity('succeeded', true);
+                      }
+                    }, function () {
+                      scope.filename = ngModel.$viewValue;
 
-                    if (opts.enableValidation) {
-                      ngModel.$setValidity('uploading', true);
-                      ngModel.$setValidity('succeeded', true);
-                    }
-                  }, function () {
-                    scope.filename = ngModel.$viewValue;
+                      if (opts.enableValidation) {
+                        ngModel.$setValidity('uploading', true);
+                        ngModel.$setValidity('succeeded', false);
+                      }
+                    });
 
-                    if (opts.enableValidation) {
-                      ngModel.$setValidity('uploading', true);
-                      ngModel.$setValidity('succeeded', false);
-                    }
-                  });
-
-              }, function (error) {
-                throw Error("Can't receive the needed options for S3 " + error);
-              });
+                }, function (error) {
+                  throw Error("Can't receive the needed options for S3 " + error);
+                });
+              }else{
+                //TODO: colocar a mensagem de erro
+              }
 
             };
 
