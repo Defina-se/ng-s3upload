@@ -153,7 +153,8 @@ angular.module('ngS3upload.directives', []).
         $scope.attempt = false;
         $scope.success = false;
         $scope.uploading = false;
-
+        var opts = angular.extend({}, $scope.$eval($attrs.s3UploadOptions || $attrs.options));
+        $scope.accept = opts.accept || "";
         $scope.barClass = function () {
           return {
             "progress-bar-success": $scope.attempt && !$scope.uploading && $scope.success
@@ -177,7 +178,8 @@ angular.module('ngS3upload.directives', []).
               uploadingKey: 'uploading',
               folder: '',
               enableValidation: true,
-              targetFilename: null
+              targetFilename: null,
+              accept: ''
             }, opts);
             var bucket = scope.$eval(attrs.bucket);
 
@@ -247,7 +249,9 @@ angular.module('ngS3upload.directives', []).
 
             if (angular.isDefined(attrs.doUpload)) {
               scope.$watch(attrs.doUpload, function(value) {
-                if (value) uploadFile();
+                if (value) {
+                  uploadFile();
+                }
               });
             }
           }
