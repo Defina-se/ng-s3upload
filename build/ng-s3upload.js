@@ -57,8 +57,6 @@ angular.module('ngS3upload.config', []).
 
     this.upload = function (scope, uri, key, acl, type, accessKey, policy, signature, file) {
       var deferred = $q.defer();
-      scope.attempt = true;
-
       var fd = new FormData();
       fd.append('key', key);
       fd.append('acl', acl);
@@ -142,18 +140,20 @@ angular.module('ngS3upload.config', []).
     };
   }]);
 angular.module('ngS3upload.directives', []).
-  directive('s3Upload', ['$parse', 'S3Uploader', 'ngS3Config', function ($parse, S3Uploader, ngS3Config) {
+  directive('s3Upload', ['$parse', 'S3Uploader', 'ngS3Config','$timeout', function ($parse, S3Uploader, ngS3Config, $timeout) {
     return {
       restrict: 'AC',
       require: '?ngModel',
       replace: true,
       transclude: false,
-      scope: true,
+      scope: {
+        s3UploadOptions: '='
+      },
       controller: ['$scope', '$element', '$attrs', '$transclude', function ($scope, $element, $attrs, $transclude) {
         $scope.attempt = false;
         $scope.success = false;
         $scope.uploading = false;
-        var opts = angular.extend({}, $scope.$eval($attrs.s3UploadOptions || $attrs.options));
+        var opts = $scope.s3UploadOptions;
         $scope.accept = opts.accept || "";
         $scope.barClass = function () {
           return {
@@ -164,13 +164,12 @@ angular.module('ngS3upload.directives', []).
       compile: function (element, attr, linker) {
         return {
           pre: function ($scope, $element, $attr) {
-            if (angular.isUndefined($attr.bucket)) {
+            if (angular.isUndefined($scope.s3UploadOptions.bucket)) {
               throw Error('bucket is a mandatory attribute');
             }
           },
           post: function (scope, element, attrs, ngModel) {
-            // Build the opts array
-            var opts = angular.extend({}, scope.$eval(attrs.s3UploadOptions || attrs.options));
+            var opts = scope.s3UploadOptions;
             opts = angular.extend({
               submitOnChange: true,
               getOptionsUri: '/getS3Options',
@@ -181,7 +180,7 @@ angular.module('ngS3upload.directives', []).
               targetFilename: null,
               accept: ''
             }, opts);
-            var bucket = scope.$eval(attrs.bucket);
+            var bucket = scope.s3UploadOptions.bucket;
 
             // Bind the button click event
             var button = angular.element(element.children()[0]),
@@ -213,6 +212,8 @@ angular.module('ngS3upload.directives', []).
 
                   var s3Uri = 'https://' + bucket + '.s3.amazonaws.com/';
                   var key = opts.targetFilename ? scope.$eval(opts.targetFilename) : opts.folder + (new Date()).getTime() + '-' + S3Uploader.randomString(16) + "." + ext;
+                  scope.attempt = true;
+                  scope.s3UploadOptions.showProgressBar = true;
                   S3Uploader.upload(scope,
                       s3Uri,
                       key,
